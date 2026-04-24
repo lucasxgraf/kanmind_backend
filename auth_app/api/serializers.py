@@ -1,3 +1,4 @@
+from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from rest_framework import serializers
@@ -13,12 +14,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = ['id', 'full_name', 'username', 'email']
 
 class RegistrationSerializer(serializers.ModelSerializer):
-    full_name = serializers.CharField(write_only=True)
+    fullname = serializers.CharField(write_only=True)
     repeated_password = serializers.CharField(write_only=True)
 
     class Meta:
         model = User
-        fields = ['full_name', 'email', 'password', 'repeated_password']
+        fields = ['fullname', 'email', 'password', 'repeated_password']
         extra_kwargs = {
             'password': {'write_only': True},
         }
@@ -26,12 +27,14 @@ class RegistrationSerializer(serializers.ModelSerializer):
     def validate(self, data):
         if data['password'] != data['repeated_password']:
             raise serializers.ValidationError({"password": "Passwords do not match"})
+
         if User.objects.filter(email=data['email']).exists():
             raise serializers.ValidationError({"email": "Email already exists"})
+            
         return data
 
     def save(self):
-        full_name = self.validated_data['full_name']
+        fullname = self.validated_data['fullname']
         email = self.validated_data['email']
         password = self.validated_data['password']
 
@@ -39,7 +42,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
         account.set_password(password)
         account.save()
 
-        UserProfile.objects.create(user=account, full_name=full_name)
+        UserProfile.objects.create(user=account, full_name=fullname)
         return account
 
 class LoginSerializer(serializers.Serializer):
@@ -60,3 +63,7 @@ class LoginSerializer(serializers.Serializer):
 
         data['user'] = user
         return data
+
+class EmailCheckSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+
