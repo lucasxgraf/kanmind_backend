@@ -11,7 +11,23 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ['id', 'full_name', 'username', 'email']
+        fields = ['id', 'fullname', 'username', 'email']
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    fullname = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'fullname']
+
+    def get_fullname(self, obj):
+        if hasattr(obj, 'userprofile') and obj.userprofile.fullname:
+            return obj.userprofile.fullname
+        
+        if obj.first_name or obj.last_name:
+            return f"{obj.first_name} {obj.last_name}".strip()
+            
+        return obj.username
 
 class RegistrationSerializer(serializers.ModelSerializer):
     fullname = serializers.CharField(write_only=True)
@@ -42,7 +58,10 @@ class RegistrationSerializer(serializers.ModelSerializer):
         account.set_password(password)
         account.save()
 
-        UserProfile.objects.create(user=account, full_name=fullname)
+        profile = account.userprofile
+        profile.fullname = fullname
+        profile.save()
+
         return account
 
 class LoginSerializer(serializers.Serializer):

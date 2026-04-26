@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from boards_app.models import Board
+from auth_app.api.serializers import UserDetailSerializer
+from tasks_app.api.serializers import TaskDetailSerializer
 
 class BoardSerializer(serializers.ModelSerializer):
     owner_id = serializers.ReadOnlyField(source='owner.id')
@@ -20,10 +22,26 @@ class BoardSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         members_data = validated_data.pop('members', [])
-        
         board = Board.objects.create(**validated_data)
         
         if members_data:
             board.members.set(members_data)
-            
         return board
+
+    def update(self, instance, validated_data):
+        members_data = validated_data.pop('members', None)
+        instance = super().update(instance, validated_data)
+        
+        if members_data is not None:
+            instance.members.set(members_data)
+            
+        return instance
+
+class BoardDetailSerializer(serializers.ModelSerializer):
+    owner_id = serializers.ReadOnlyField(source='owner.id')
+    members = UserDetailSerializer(many=True, read_only=True)
+    tasks = TaskDetailSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Board
+        fields = ['id', 'title', 'owner_id', 'members', 'tasks']

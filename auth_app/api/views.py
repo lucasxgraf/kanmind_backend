@@ -37,7 +37,7 @@ class LoginView(ObtainAuthToken):
         
         return Response({
             'user_id': user.id,
-            'fullname': user.userprofile.full_name,
+            'fullname': user.userprofile.fullname,
             'email': user.email,
             'token': token.key
         })
@@ -57,7 +57,7 @@ class EmailCheckView(generics.GenericAPIView):
             user = User.objects.get(email=email)
             return Response({
                 "user_id": user.id,
-                "fullname": user.userprofile.full_name,
+                "fullname": user.userprofile.fullname,
                 "email": user.email
             }, status=status.HTTP_200_OK)
         except User.DoesNotExist:
