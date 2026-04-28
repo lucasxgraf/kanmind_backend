@@ -29,6 +29,13 @@ class TaskViewSet(viewsets.ModelViewSet):
             Q(board__owner=user) | Q(board__members=user)
         ).distinct()
 
+    @action(detail=False, methods=['get'], url_path='assigned-tasks')
+    def assigned_tasks(self, request):
+        user = request.user
+        tasks = Task.objects.filter(assignee=user)
+        serializer = self.get_serializer(tasks, many=True)
+        return Response(serializer.data)
+
     @action(detail=False, methods=['get'], url_path='reviewer-tasks')
     def reviewer_tasks(self, request):
         user = request.user
