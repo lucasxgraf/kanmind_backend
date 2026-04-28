@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from tasks_app.models import Task
+from tasks_app.models import Task, Comment
 from auth_app.api.serializers import UserDetailSerializer
 
 class TaskSerializer(serializers.ModelSerializer):
@@ -20,7 +20,7 @@ class TaskSerializer(serializers.ModelSerializer):
         ]
 
     def get_comments_count(self, obj):
-        return 0
+        return obj.comments.count()
 
     def validate(self, data):
         board = data.get('board')
@@ -56,7 +56,22 @@ class TaskDetailSerializer(serializers.ModelSerializer):
         fields = ['id', 'board', 'title', 'description', 'status', 'priority', 'assignee', 'reviewer', 'due_date', 'comments_count']
 
     def get_comments_count(self, obj):
-        return 0
+        return obj.comments.count()
+
+class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'created_at', 'author', 'content']
+
+    def get_author(self, obj):
+        user = obj.author
+        if hasattr(user, 'userprofile') and user.userprofile.fullname:
+            return user.userprofile.fullname
+        if user.first_name or user.last_name:
+            return f"{user.first_name} {user.last_name}".strip()
+        return user.username
 
 class TaskUpdateSerializer(serializers.ModelSerializer):
     assignee_id = serializers.PrimaryKeyRelatedField(
