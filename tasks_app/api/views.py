@@ -1,5 +1,7 @@
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from tasks_app.models import Task
 from tasks_app.api.serializers import TaskSerializer, TaskUpdateSerializer
 from tasks_app.api.permissions import IsBoardMember, IsTaskOwnerOrBoardOwner
@@ -26,3 +28,10 @@ class TaskViewSet(viewsets.ModelViewSet):
         return Task.objects.filter(
             Q(board__owner=user) | Q(board__members=user)
         ).distinct()
+
+    @action(detail=False, methods=['get'], url_path='reviewer-tasks')
+    def reviewer_tasks(self, request):
+        user = request.user
+        tasks = Task.objects.filter(reviewer=user)
+        serializer = self.get_serializer(tasks, many=True)
+        return Response(serializer.data)
