@@ -38,6 +38,10 @@ class TaskSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"reviewer_id": "Der Reviewer muss Mitglied des Boards sein."})
 
         return data
+    
+    def create(self, validated_data):
+        validated_data['created_by'] = self.context['request'].user
+        return super().create(validated_data)
 
     def to_representation(self, instance):
         return TaskDetailSerializer(instance).data
@@ -53,3 +57,38 @@ class TaskDetailSerializer(serializers.ModelSerializer):
 
     def get_comments_count(self, obj):
         return 0
+
+class TaskUpdateSerializer(serializers.ModelSerializer):
+    assignee_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), source='assignee', required=False, allow_null=True
+    )
+    reviewer_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), source='reviewer', required=False, allow_null=True
+    )
+
+    class Meta:
+        model = Task
+        fields = [
+            'id', 'title', 'description', 'status', 
+            'priority', 'assignee_id', 'reviewer_id', 'due_date'
+        ]
+
+    def validate(self, data):
+        instance = self.instance
+        board = instance.board
+        assignee = data.get('assignee', instance.assignee)
+        reviewer = data.get('reviewer', instance.reviewer)
+
+        if 'board' in data:
+            raise serializers.ValidationError({"board": "Das Ändern der Board-ID ist nicht erlaubt."})
+
+        if assignee and assignee != board.owner and not board.members.filter(id=assignee.id).exists():
+            raise serializers.ValidationError({"assignee_id": "Der Assignee muss Mitglied des Boards sein."})
+
+        if reviewer and reviewer != board.owner and not board.members.filter(id=reviewer.id).exists():
+            raise serializers.ValidationError({"reviewer_id": "Der Reviewer muss Mitglied des Boards sein."})
+
+        return data
+
+    def to_representation(self, instance):
+        return TaskDetailSerializer(instance).data
