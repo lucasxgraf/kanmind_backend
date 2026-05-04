@@ -3,8 +3,8 @@ from django.contrib.auth.models import User
 
 class Board(models.Model):
     title = models.CharField(max_length=255)
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owned_boards')
-    members = models.ManyToManyField(User, related_name='boards', blank=True)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='board_owner')
+    members = models.ManyToManyField(User, related_name='board_members', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

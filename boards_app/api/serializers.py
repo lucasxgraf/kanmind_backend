@@ -29,23 +29,6 @@ class BoardSerializer(serializers.ModelSerializer):
     def get_tasks_high_prio_count(self, obj):
         return obj.tasks.filter(priority='high').count()
 
-    def create(self, validated_data):
-        members_data = validated_data.pop('members', [])
-        board = Board.objects.create(**validated_data)
-        
-        if members_data:
-            board.members.set(members_data)
-        return board
-
-    def update(self, instance, validated_data):
-        members_data = validated_data.pop('members', None)
-        instance = super().update(instance, validated_data)
-        
-        if members_data is not None:
-            instance.members.set(members_data)
-            
-        return instance
-
 class BoardDetailSerializer(serializers.ModelSerializer):
     owner_id = serializers.ReadOnlyField(source='owner.id')
     members = UserDetailSerializer(many=True, read_only=True)

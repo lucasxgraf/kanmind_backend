@@ -11,19 +11,17 @@ class RegistrationView(generics.CreateAPIView):
     permission_classes = [AllowAny]
     serializer_class = RegistrationSerializer
 
-    def post(self, request, *args, **kwargs):
+    def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            account = serializer.save()
-            token, created = Token.objects.get_or_create(user=account)
-            data = {
-                'user_id': account.id,
-                'fullname': serializer.validated_data['fullname'],
-                'email': account.email,
-                'token': token.key
-            }
-            return Response(data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        account = serializer.save()
+        token, create = Token.objects.get_or_create(user=account)
+        return Response({
+            'user_id': account.id,
+            'fullname': serializer.validated_data['fullname'],
+            'email': account.email,
+            'token': token.key
+        }, status=status.HTTP_201_CREATED)
 
 class LoginView(ObtainAuthToken):
     serializer_class = LoginSerializer

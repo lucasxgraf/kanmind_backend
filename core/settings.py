@@ -47,7 +47,6 @@ INSTALLED_APPS = [
     'auth_app',
     'boards_app',
     'tasks_app',
-    'dotenv',
 ]
 
 MIDDLEWARE = [
@@ -139,3 +138,5 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ]
 }
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

@@ -3,6 +3,16 @@ from django.contrib.auth.models import User
 from tasks_app.models import Task, Comment
 from auth_app.api.serializers import UserDetailSerializer
 
+
+def validate_board_membership(board, assignee=None, reviewer=None):
+    """Shared validation: assignee and reviewer must be board owner or member."""
+    if assignee and assignee != board.owner and not board.members.filter(id=assignee.id).exists():
+        raise serializers.ValidationError({"assignee_id": "Der Assignee muss Mitglied des Boards sein."})
+
+    if reviewer and reviewer != board.owner and not board.members.filter(id=reviewer.id).exists():
+        raise serializers.ValidationError({"reviewer_id": "Der Reviewer muss Mitglied des Boards sein."})
+
+
 class TaskSerializer(serializers.ModelSerializer):
     assignee_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), source='assignee', required=False, allow_null=True
@@ -10,7 +20,7 @@ class TaskSerializer(serializers.ModelSerializer):
     reviewer_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(), source='reviewer', required=False, allow_null=True
     )
-    comments_count = serializers.SerializerMethodField(read_only=True)
+    comments_count = serializers.IntegerField(source='comments.count', read_only=True)
 
     class Meta:
         model = Task
@@ -19,24 +29,14 @@ class TaskSerializer(serializers.ModelSerializer):
             'priority', 'assignee_id', 'reviewer_id', 'due_date', 'comments_count'
         ]
 
-    def get_comments_count(self, obj):
-        return obj.comments.count()
-
     def validate(self, data):
         board = data.get('board')
-        assignee = data.get('assignee')
-        reviewer = data.get('reviewer')
-
         user = self.context['request'].user
+
         if user != board.owner and not board.members.filter(id=user.id).exists():
             raise serializers.ValidationError({"board": "Du musst Mitglied des Boards sein, um Tasks zu erstellen."})
 
-        if assignee and assignee != board.owner and not board.members.filter(id=assignee.id).exists():
-            raise serializers.ValidationError({"assignee_id": "Der Assignee muss Mitglied des Boards sein."})
-
-        if reviewer and reviewer != board.owner and not board.members.filter(id=reviewer.id).exists():
-            raise serializers.ValidationError({"reviewer_id": "Der Reviewer muss Mitglied des Boards sein."})
-
+        validate_board_membership(board, data.get('assignee'), data.get('reviewer'))
         return data
     
     def create(self, validated_data):
@@ -46,32 +46,24 @@ class TaskSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         return TaskDetailSerializer(instance).data
 
+
 class TaskDetailSerializer(serializers.ModelSerializer):
     assignee = UserDetailSerializer(read_only=True)
     reviewer = UserDetailSerializer(read_only=True)
-    comments_count = serializers.SerializerMethodField()
+    comments_count = serializers.IntegerField(source='comments.count', read_only=True)
 
     class Meta:
         model = Task
         fields = ['id', 'board', 'title', 'description', 'status', 'priority', 'assignee', 'reviewer', 'due_date', 'comments_count']
 
-    def get_comments_count(self, obj):
-        return obj.comments.count()
 
 class CommentSerializer(serializers.ModelSerializer):
-    author = serializers.SerializerMethodField()
+    author = UserDetailSerializer(read_only=True)
 
     class Meta:
         model = Comment
         fields = ['id', 'created_at', 'author', 'content']
 
-    def get_author(self, obj):
-        user = obj.author
-        if hasattr(user, 'userprofile') and user.userprofile.fullname:
-            return user.userprofile.fullname
-        if user.first_name or user.last_name:
-            return f"{user.first_name} {user.last_name}".strip()
-        return user.username
 
 class TaskUpdateSerializer(serializers.ModelSerializer):
     assignee_id = serializers.PrimaryKeyRelatedField(
@@ -91,18 +83,15 @@ class TaskUpdateSerializer(serializers.ModelSerializer):
     def validate(self, data):
         instance = self.instance
         board = instance.board
-        assignee = data.get('assignee', instance.assignee)
-        reviewer = data.get('reviewer', instance.reviewer)
 
         if 'board' in data:
             raise serializers.ValidationError({"board": "Das Ändern der Board-ID ist nicht erlaubt."})
 
-        if assignee and assignee != board.owner and not board.members.filter(id=assignee.id).exists():
-            raise serializers.ValidationError({"assignee_id": "Der Assignee muss Mitglied des Boards sein."})
-
-        if reviewer and reviewer != board.owner and not board.members.filter(id=reviewer.id).exists():
-            raise serializers.ValidationError({"reviewer_id": "Der Reviewer muss Mitglied des Boards sein."})
-
+        validate_board_membership(
+            board,
+            data.get('assignee', instance.assignee),
+            data.get('reviewer', instance.reviewer),
+        )
         return data
 
     def to_representation(self, instance):

@@ -1,8 +1,6 @@
-from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from rest_framework.authtoken.models import Token
 from auth_app.models import UserProfile
 
 class UserProfileSerializer(serializers.ModelSerializer):
