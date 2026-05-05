@@ -18,7 +18,7 @@ class BoardSerializer(serializers.ModelSerializer):
         }
 
     def get_member_count(self, obj):
-        return obj.members.count()
+        return obj.members.count() + 1
 
     def get_ticket_count(self, obj):
         return obj.tasks.count()
@@ -37,3 +37,11 @@ class BoardDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Board
         fields = ['id', 'title', 'owner_id', 'members', 'tasks']
+
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        owner_data = UserDetailSerializer(instance.owner).data
+        member_ids = [m['id'] for m in rep['members']]
+        if instance.owner.id not in member_ids:
+            rep['members'] = [owner_data] + rep['members']
+        return rep

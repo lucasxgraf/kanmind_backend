@@ -58,11 +58,18 @@ class TaskDetailSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
-    author = UserDetailSerializer(read_only=True)
+    author = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
         fields = ['id', 'created_at', 'author', 'content']
+
+    def get_author(self, obj):
+        if hasattr(obj.author, 'userprofile') and obj.author.userprofile.fullname:
+            return obj.author.userprofile.fullname
+        if obj.author.first_name or obj.author.last_name:
+            return f"{obj.author.first_name} {obj.author.last_name}".strip()
+        return obj.author.username
 
 
 class TaskUpdateSerializer(serializers.ModelSerializer):

@@ -54,7 +54,7 @@ class EmailCheckView(generics.GenericAPIView):
         try:
             user = User.objects.get(email=email)
             return Response({
-                "user_id": user.id,
+                "id": user.id,
                 "fullname": user.userprofile.fullname,
                 "email": user.email
             }, status=status.HTTP_200_OK)
