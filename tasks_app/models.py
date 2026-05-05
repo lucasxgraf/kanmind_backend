@@ -1,8 +1,12 @@
-from django.db import models
 from django.contrib.auth.models import User
+from django.db import models
+
 from boards_app.models import Board
 
+
 class Task(models.Model):
+    """A task card on a Kanban board."""
+
     STATUS_CHOICES = [
         ('to-do', 'To-Do'),
         ('in-progress', 'In Progress'),
@@ -20,22 +24,33 @@ class Task(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='to-do')
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
     due_date = models.DateField(null=True, blank=True)
-    
     board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='tasks', null=True, blank=True)
     assignee = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_tasks')
     reviewer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_tasks')
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_tasks', null=True, blank=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'task'
+        verbose_name_plural = 'tasks'
+        ordering = ['-created_at']
 
     def __str__(self):
         return self.title
 
+
 class Comment(models.Model):
+    """A comment left by a user on a task."""
+
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='comments')
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='task_comments')
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'comment'
+        verbose_name_plural = 'comments'
+        ordering = ['created_at']
 
     def __str__(self):
         return f"Comment by {self.author} on {self.task}"
