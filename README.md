@@ -51,11 +51,18 @@ pip install -r requirements.txt
 
 ### 4. Configure environment variables
 
-Create a `.env` file in the project root:
+Copy the example file and fill in your values:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env`:
 
 ```env
 SECRET_KEY=your-secret-key-here
 DEBUG=True
+ALLOWED_HOSTS=127.0.0.1
 ```
 
 ### 5. Apply database migrations
