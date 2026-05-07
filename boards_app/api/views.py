@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from boards_app.models import Board
 from .permissions import IsBoardOwner
-from .serializers import BoardDetailSerializer, BoardSerializer
+from .serializers import BoardDetailSerializer, BoardSerializer, BoardUpdateSerializer
 
 
 class BoardViewSet(viewsets.ModelViewSet):
@@ -19,15 +19,19 @@ class BoardViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsBoardOwner]
 
     def get_serializer_class(self):
-        """Use the detail serializer for retrieve, list serializer otherwise."""
+        """Use the appropriate serializer based on the action."""
         if self.action == 'retrieve':
             return BoardDetailSerializer
+        if self.action in ('update', 'partial_update'):
+            return BoardUpdateSerializer
         return BoardSerializer
 
     def get_queryset(self):
-        """Return only boards where the user is the owner or a member."""
+        """For list: only own/member boards. For detail actions: all boards so permissions can return 403."""
         user = self.request.user
-        return Board.objects.filter(Q(owner=user) | Q(members=user)).distinct()
+        if self.action == 'list':
+            return Board.objects.filter(Q(owner=user) | Q(members=user)).distinct()
+        return Board.objects.all()
 
     def perform_create(self, serializer):
         """Set the current user as the owner when creating a board."""

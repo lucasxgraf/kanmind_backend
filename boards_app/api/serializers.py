@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from rest_framework import serializers
 
 from auth_app.api.serializers import UserDetailSerializer
@@ -37,6 +38,20 @@ class BoardSerializer(serializers.ModelSerializer):
     def get_tasks_high_prio_count(self, obj):
         """Return number of high-priority tasks on this board."""
         return obj.tasks.filter(priority='high').count()
+
+
+class BoardUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for PATCH responses: returns nested owner_data and members_data."""
+
+    owner_data = UserDetailSerializer(source='owner', read_only=True)
+    members_data = UserDetailSerializer(source='members', many=True, read_only=True)
+    members = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), many=True, write_only=True
+    )
+
+    class Meta:
+        model = Board
+        fields = ['id', 'title', 'owner_data', 'members_data', 'members']
 
 
 class BoardDetailSerializer(serializers.ModelSerializer):
