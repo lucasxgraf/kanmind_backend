@@ -47,12 +47,10 @@ class TaskSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, data):
-        """Ensure the requesting user and all assignees are board participants."""
+        """Ensure assignee and reviewer are board participants."""
         board = data.get('board')
-        user = self.context['request'].user
-        if user != board.owner and not board.members.filter(id=user.id).exists():
-            raise serializers.ValidationError({'board': 'Du musst Mitglied des Boards sein, um Tasks zu erstellen.'})
-        validate_board_membership(board, data.get('assignee'), data.get('reviewer'))
+        if board:
+            validate_board_membership(board, data.get('assignee'), data.get('reviewer'))
         return data
 
     def create(self, validated_data):

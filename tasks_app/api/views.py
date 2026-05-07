@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from boards_app.models import Board
 from tasks_app.api.permissions import IsBoardMember, IsTaskOwnerOrBoardOwner
 from tasks_app.api.serializers import CommentSerializer, TaskSerializer, TaskUpdateSerializer
 from tasks_app.models import Comment, Task
@@ -37,11 +38,25 @@ class TaskViewSet(viewsets.ModelViewSet):
         return TaskSerializer
 
     def get_queryset(self):
-        """Return only tasks on boards where the user is owner or member."""
+        """For list: only own/member boards. For detail actions: all tasks so permissions can return 403."""
         user = self.request.user
-        return Task.objects.filter(
-            Q(board__owner=user) | Q(board__members=user)
-        ).distinct()
+        if self.action == 'list':
+            return Task.objects.filter(
+                Q(board__owner=user) | Q(board__members=user)
+            ).distinct()
+        return Task.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        """Check board existence (404) and membership (403) before delegating to super."""
+        board_id = request.data.get('board')
+        try:
+            board = Board.objects.get(id=board_id)
+        except (Board.DoesNotExist, TypeError, ValueError):
+            return Response({'detail': 'Board nicht gefunden.'}, status=status.HTTP_404_NOT_FOUND)
+        user = request.user
+        if user != board.owner and not board.members.filter(id=user.id).exists():
+            return Response({'detail': 'Du musst Mitglied des Boards sein.'}, status=status.HTTP_403_FORBIDDEN)
+        return super().create(request, *args, **kwargs)
 
     @action(detail=False, methods=['get'], url_path='assigned-to-me')
     def assigned_tasks(self, request):
