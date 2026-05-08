@@ -53,6 +53,15 @@ class BoardUpdateSerializer(serializers.ModelSerializer):
         model = Board
         fields = ['id', 'title', 'owner_data', 'members_data', 'members']
 
+    def to_representation(self, instance):
+        """Prepend the owner to members_data if not already present."""
+        rep = super().to_representation(instance)
+        owner_data = UserDetailSerializer(instance.owner).data
+        member_ids = [m['id'] for m in rep['members_data']]
+        if instance.owner.id not in member_ids:
+            rep['members_data'] = [owner_data] + rep['members_data']
+        return rep
+
 
 class BoardDetailSerializer(serializers.ModelSerializer):
     """Serializer for the board detail view including nested members and tasks."""
